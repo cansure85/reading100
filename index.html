@@ -107,7 +107,7 @@ h2 { font-size: 1.25rem; }
 .shelf { display: grid; grid-template-columns: repeat(20, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 10px 4px; }
 .slot { aspect-ratio: 1 / 3.6; min-height: 64px; margin: 0 1px 12px; border-bottom: 6px solid var(--brass); position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; }
 .slot.empty::after { content: attr(data-n); font-family: var(--mono); font-size: .55rem; line-height: 1; color: var(--muted); opacity: .6; }
-.spine { position: absolute; left: 1px; right: 1px; bottom: 0; border-radius: 2px 2px 0 0; border: 0; padding: 6px 0; cursor: pointer; color: #fff; writing-mode: vertical-rl; font-family: var(--display); font-size: .68rem; line-height: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: flex; align-items: center; box-shadow: inset -3px 0 0 rgba(0,0,0,.14); transition: transform .15s ease; }
+.spine { position: absolute; left: calc((100% - var(--w, 100%)) / 2 + 1px); width: calc(var(--w, 100%) - 2px); bottom: 0; border-radius: 2px 2px 0 0; border: 0; padding: 6px 0; cursor: pointer; color: #fff; writing-mode: vertical-rl; font-family: var(--display); font-size: .68rem; line-height: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: flex; align-items: center; box-shadow: inset -3px 0 0 rgba(0,0,0,.14); transition: transform .15s ease; }
 .spine:hover, .spine:focus-visible { transform: translateY(-6px); }
 .spine:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .spine.ex { opacity: .55; background-image: repeating-linear-gradient(45deg, transparent 0 5px, rgba(255,255,255,.18) 5px 7px); }
@@ -510,11 +510,18 @@ function renderReading() {
   if (focused && $(focused)) $(focused).focus();
 }
 
+// 책 두께: 페이지 수에 따라 칸 너비의 40%(30쪽 이하) ~ 100%(500쪽 이상). 쪽수를 모르면 70%.
+function spineWidth(b) {
+  const p = +b.totalPages || 0;
+  if (!p) return 70;
+  const t = (Math.log(Math.max(30, Math.min(500, p))) - Math.log(30)) / (Math.log(500) - Math.log(30));
+  return Math.round(40 + 60 * t);
+}
 function shelfHtml(list, G, kind) {
   let html = "";
   for (let i = 0; i < Math.max(G, list.length); i++) {
     const b = list[i];
-    html += b ? `<div class="slot"><button type="button" class="spine${b.example ? " ex" : ""}${kind ? " " + kind : ""}" data-edit="${esc(b.id)}" style="${kind ? `--d:${(i * 0.37) % 3}s;` : `background-color:${gColor(b.genre)};`}height:${78 + ((b.title || "").length * 7 + i * 13) % 20}%" title="${i + 1}. ${esc(b.title)}${credit(b) ? " · " + esc(credit(b)) : ""}" aria-label="${i + 1}번째 책 ${esc(b.title)}">${esc(b.title)}</button></div>`
+    html += b ? `<div class="slot"><button type="button" class="spine${b.example ? " ex" : ""}${kind ? " " + kind : ""}" data-edit="${esc(b.id)}" style="${kind ? `--d:${(i * 0.37) % 3}s;` : `background-color:${gColor(b.genre)};`}--w:${spineWidth(b)}%;height:${78 + ((b.title || "").length * 7 + i * 13) % 20}%" title="${i + 1}. ${esc(b.title)}${b.totalPages ? ` (${b.totalPages}쪽)` : ""}${credit(b) ? " · " + esc(credit(b)) : ""}" aria-label="${i + 1}번째 책 ${esc(b.title)}">${esc(b.title)}</button></div>`
       : `<div class="slot empty" data-n="${i + 1}"></div>`;
   }
   let sparks = "";
