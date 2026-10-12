@@ -27,7 +27,7 @@
   --muted: #5d6d6c;
   --line: #d3dbd8;
   --brass: #a67a24;
-  --gold: #c99a1e; --gold-hi: #ffe58a; --gold-deep: #8a6410; --pink: #f7a8c4; --pink-deep: #d9668f; --spine-ink: #3a2c06;
+  --gold: #c99a1e; --gold-hi: #ffe58a; --gold-deep: #8a6410; --pink: #f7a8c4; --pink-deep: #d9668f; --red: #e04545; --red-deep: #b02a2a; --spine-ink: #3a2c06;
   --slot: #e2e8e5;
   --danger: #b0413e;
   --arim: #1d6a5a;
@@ -41,14 +41,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #111a1b; --surface: #182324; --ink: #e3ebe8; --muted: #93a3a0; --line: #2b3a3b;
-    --brass: #d6a94e; --gold: #e0b43a; --gold-hi: #fff0b0; --gold-deep: #b8861c; --pink: #f29bbb; --pink-deep: #e07aa0; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
+    --brass: #d6a94e; --gold: #e0b43a; --gold-hi: #fff0b0; --gold-deep: #b8861c; --pink: #f29bbb; --pink-deep: #e07aa0; --red: #ee6a6a; --red-deep: #d24a4a; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
     --g1: #4fae95; --g2: #7d9be0; --g3: #d6a94e; --g4: #c682a6; --g5: #93b55d; --g6: #9ba0aa; --g7: #e08a68; --g8: #6cc3dc;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111a1b; --surface: #182324; --ink: #e3ebe8; --muted: #93a3a0; --line: #2b3a3b;
-  --brass: #d6a94e; --gold: #e0b43a; --gold-hi: #fff0b0; --gold-deep: #b8861c; --pink: #f29bbb; --pink-deep: #e07aa0; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
+  --brass: #d6a94e; --gold: #e0b43a; --gold-hi: #fff0b0; --gold-deep: #b8861c; --pink: #f29bbb; --pink-deep: #e07aa0; --red: #ee6a6a; --red-deep: #d24a4a; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
   --g1: #4fae95; --g2: #7d9be0; --g3: #d6a94e; --g4: #c682a6; --g5: #93b55d; --g6: #9ba0aa; --g7: #e08a68; --g8: #6cc3dc;
   color-scheme: dark;
 }
@@ -176,6 +176,11 @@ td .note { color: var(--muted); font-size: .82rem; margin-top: 2px; }
 .split .lab { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); }
 .split .lab b { color: var(--ink); font-weight: 600; }
 /* 솔리 서가: 스페셜은 반짝이는 황금색, 자유는 핑크색 */
+/* 아림 서가: 빨간색 */
+.shelf.red { background: color-mix(in srgb, var(--red) 12%, var(--surface)); border-color: var(--red-deep); }
+.shelf.red .slot { border-bottom-color: var(--red-deep); }
+.spine.red { background: var(--red); color: #ffffff; }
+.reader .bar.red > i { background: var(--red); }
 .shelf.gold, .shelf.pink { position: relative; overflow: hidden; }
 .shelf.gold { background: color-mix(in srgb, var(--gold) 14%, var(--surface)); border-color: var(--gold); box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent), 0 4px 18px color-mix(in srgb, var(--gold) 25%, transparent); }
 .shelf.pink { background: color-mix(in srgb, var(--pink) 16%, var(--surface)); border-color: var(--pink-deep); }
@@ -385,6 +390,7 @@ const byReader = r => books.filter(b => b.reader === r);
 // 솔리는 100권을 스페셜(100쪽 이상) 50권 + 자유 50권으로 나눠요.
 const SPLIT = { soli: { minPages: 100 } };
 const isSplit = r => !!SPLIT[r];
+const SHELF_COLOR = { arim: "red" };
 const isSpecial = b => isSplit(b.reader) && !!b.special;
 function targets(r) { const G = Math.max(1, +goalOf(r).goal || 100); const sp = isSplit(r) ? Math.ceil(G / 2) : 0; return { G, sp, gen: G - sp }; }
 function doneCount(r) {
@@ -425,7 +431,7 @@ function renderReaders() {
     const G = Math.max(1, +goalOf(r).goal || 100);
     const done = doneCount(r);
     const reading = byReader(r).filter(b => !isDone(b)).length;
-    let bars = `<div class="bar"><i style="width:${Math.min(100, done / G * 100)}%"></i></div>`;
+    let bars = `<div class="bar${SHELF_COLOR[r] ? " " + SHELF_COLOR[r] : ""}"><i style="width:${Math.min(100, done / G * 100)}%"></i></div>`;
     if (isSplit(r)) {
       const t = targets(r), fin = finishedOf(r), sp = fin.filter(isSpecial).length, gen = fin.length - sp;
       bars = `<div class="split">
@@ -520,8 +526,8 @@ function shelfHtml(list, G, kind) {
 }
 function renderShelf() {
   const list = finishedOf(reader), t = targets(reader);
-  $("legend").hidden = isSplit(reader);
-  if (!isSplit(reader)) { $("shelves").innerHTML = shelfHtml(list, t.G); return; }
+  $("legend").hidden = isSplit(reader) || !!SHELF_COLOR[reader];
+  if (!isSplit(reader)) { $("shelves").innerHTML = shelfHtml(list, t.G, SHELF_COLOR[reader]); return; }
   const sp = list.filter(isSpecial), gen = list.filter(b => !isSpecial(b));
   $("shelves").innerHTML =
     `<div><div class="shelf-label"><b class="gold">스페셜 서가</b><span>100쪽 이상 · ${sp.length} / ${t.sp}권</span></div>${shelfHtml(sp, t.sp, "gold")}</div>` +
