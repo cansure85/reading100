@@ -223,7 +223,8 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--slot); }
       <form id="form" autocomplete="off">
         <div class="fields">
           <label class="full">제목<input id="f-title" required maxlength="120" placeholder="예: 마당을 나온 암탉"></label>
-          <label>저자<input id="f-author" maxlength="80" placeholder="예: 황선미"></label>
+          <label><span id="authorLab">저자</span><input id="f-author" maxlength="80" placeholder="예: 황선미"></label>
+          <label id="illRow" hidden>그림<input id="f-illustrator" maxlength="80" placeholder="예: 김환영"></label>
           <label>분야<select id="f-genre"></select></label>
           <label>총 페이지<input id="f-pages" type="number" min="1" max="5000" inputmode="numeric" placeholder="예: 216"></label>
           <label>읽는 사람<select id="f-reader"><option value="arim">아림</option><option value="soli">솔리</option></select></label>
@@ -276,7 +277,7 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--slot); }
   <section class="panel" aria-labelledby="logTitle">
     <div class="sec-head">
       <h2 id="logTitle">독서 목록</h2>
-      <input id="q" type="search" placeholder="제목·저자 검색" aria-label="제목이나 저자로 검색" style="max-width:240px">
+      <input id="q" type="search" placeholder="제목·작가 검색" aria-label="제목이나 저자로 검색" style="max-width:240px">
     </div>
     <div class="table-wrap">
       <table>
@@ -375,6 +376,12 @@ function doneCount(r) {
   const t = targets(r), sp = fin.filter(isSpecial).length;
   return Math.min(sp, t.sp) + Math.min(fin.length - sp, t.gen);
 }
+// 솔리는 글 작가와 그림 작가를 따로 적어요.
+const ILLUSTRATED = { soli: true };
+function credit(b) {
+  if (!b.illustrator) return b.author || "";
+  return [b.author ? "글 " + b.author : "", "그림 " + b.illustrator].filter(Boolean).join(" · ");
+}
 const finishedOf = r => byReader(r).filter(isDone).sort((a, b) => a.finished.localeCompare(b.finished) || (a.createdAt || 0) - (b.createdAt || 0));
 function daily(r, key) {
   const m = {};
@@ -458,7 +465,7 @@ function renderReading() {
     const days = b.started ? Math.round((parse(today()) - parse(b.started)) / dayMs) + 1 : 0;
     const id = esc(b.id);
     return `<article class="now">
-      <div class="head"><div><h3>${esc(b.title)}${isSpecial(b) ? '<span class="chip sp">스페셜</span>' : ""}${b.example ? '<span class="chip ex">예시</span>' : ""}</h3><div class="by">${esc(b.author || "")}${b.author ? " · " : ""}${b.started ? `${fmtS(b.started)} 시작, ${days}일째` : ""}</div></div>
+      <div class="head"><div><h3>${esc(b.title)}${isSpecial(b) ? '<span class="chip sp">스페셜</span>' : ""}${b.example ? '<span class="chip ex">예시</span>' : ""}</h3><div class="by">${esc(credit(b))}${credit(b) ? " · " : ""}${b.started ? `${fmtS(b.started)} 시작, ${days}일째` : ""}</div></div>
         <button type="button" class="link" data-edit="${id}">고치기</button></div>
       <div class="bar" style="--c:var(--accent)"><i style="width:${pct}%"></i></div>
       <div class="pg"><span><b class="num">${read}</b>${total ? ` / ${total}쪽` : "쪽 읽음"}</span><span class="num">${total ? Math.round(pct) + "%" : "총 페이지를 적으면 진행률이 보여요"}</span></div>
@@ -484,7 +491,7 @@ function shelfHtml(list, G) {
   let html = "";
   for (let i = 0; i < Math.max(G, list.length); i++) {
     const b = list[i];
-    html += b ? `<div class="slot"><button type="button" class="spine${b.example ? " ex" : ""}" data-edit="${esc(b.id)}" style="background-color:${gColor(b.genre)};height:${78 + ((b.title || "").length * 7 + i * 13) % 20}%" title="${i + 1}. ${esc(b.title)}${b.author ? " · " + esc(b.author) : ""}" aria-label="${i + 1}번째 책 ${esc(b.title)}">${esc(b.title)}</button></div>`
+    html += b ? `<div class="slot"><button type="button" class="spine${b.example ? " ex" : ""}" data-edit="${esc(b.id)}" style="background-color:${gColor(b.genre)};height:${78 + ((b.title || "").length * 7 + i * 13) % 20}%" title="${i + 1}. ${esc(b.title)}${credit(b) ? " · " + esc(credit(b)) : ""}" aria-label="${i + 1}번째 책 ${esc(b.title)}">${esc(b.title)}</button></div>`
       : `<div class="slot empty" data-n="${i + 1}"></div>`;
   }
   return `<div class="shelf">${html}</div>`;
@@ -551,14 +558,14 @@ function renderList() {
   else fin.forEach((b, i) => numOf.set(b.id, String(i + 1).padStart(3, "0")));
   const reading = byReader(reader).filter(b => !isDone(b));
   const q = query.trim().toLowerCase();
-  const all = [...reading, ...fin.slice().reverse()].filter(b => !q || (b.title + " " + (b.author || "")).toLowerCase().includes(q));
+  const all = [...reading, ...fin.slice().reverse()].filter(b => !q || (b.title + " " + (b.author || "") + " " + (b.illustrator || "")).toLowerCase().includes(q));
   $("rows").innerHTML = all.length ? all.map(b => {
     const no = numOf.get(b.id);
     const span = b.started && b.finished ? `${Math.round((parse(b.finished) - parse(b.started)) / dayMs) + 1}일` : "";
     return `<tr class="${canWrite ? "click" : ""}" data-edit="${esc(b.id)}">
       <td class="no">${no || "—"}</td>
       <td><span class="t">${esc(b.title)}</span>${isDone(b) ? "" : '<span class="chip reading">읽는 중</span>'}${isSpecial(b) ? '<span class="chip sp">스페셜</span>' : ""}${b.example ? '<span class="chip ex">예시</span>' : ""}
-        <div class="note">${esc(b.author || "")}${b.author ? " · " : ""}<span class="chip" style="background:${gColor(b.genre)}">${esc(b.genre || "기타")}</span></div>
+        <div class="note">${esc(credit(b))}${credit(b) ? " · " : ""}<span class="chip" style="background:${gColor(b.genre)}">${esc(b.genre || "기타")}</span></div>
         ${b.note ? `<div class="note">“${esc(b.note)}”</div>` : ""}</td>
       <td class="num" style="white-space:nowrap">${fmtS(b.started)} ~ ${b.finished ? fmtS(b.finished) : ""}${span ? `<div class="note">${span}</div>` : ""}</td>
       <td class="num" style="white-space:nowrap">${b.totalPages ? `${isDone(b) ? "" : pagesRead(b) + " / "}${b.totalPages}쪽` : (pagesRead(b) ? pagesRead(b) + "쪽" : "")}</td>
@@ -585,6 +592,8 @@ function renderLogEditor(b) {
 let spTouched = false;
 function updateSpecialRow() {
   const r = $("f-reader").value, cb = $("f-special");
+  $("illRow").hidden = !ILLUSTRATED[r];
+  $("authorLab").textContent = ILLUSTRATED[r] ? "글" : "저자";
   $("spRow").hidden = !isSplit(r);
   if (!isSplit(r)) return;
   const pages = +$("f-pages").value || 0, min = SPLIT[r].minPages, t = targets(r);
@@ -605,7 +614,7 @@ $("f-special").addEventListener("change", () => { spTouched = true; updateSpecia
 function startEdit(id) {
   const b = books.find(x => x.id === id); if (!b || !canWrite) return;
   editingId = id;
-  $("f-title").value = b.title || ""; $("f-author").value = b.author || "";
+  $("f-title").value = b.title || ""; $("f-author").value = b.author || ""; $("f-illustrator").value = b.illustrator || "";
   $("f-genre").value = b.genre || "기타"; $("f-pages").value = b.totalPages || "";
   $("f-reader").value = b.reader || reader; $("f-start").value = b.started || "";
   $("f-end").value = b.finished || ""; $("f-note").value = b.note || "";
@@ -717,7 +726,8 @@ $("form").addEventListener("submit", async e => {
   const started = $("f-start").value || today(), finished = $("f-end").value;
   if (finished && finished < started) { say($("msg"), "다 읽은 날은 처음 읽은 날과 같거나 뒤여야 해요.", true); return; }
   const data = {
-    title, author: $("f-author").value.trim(), genre: $("f-genre").value, reader: $("f-reader").value,
+    title, author: $("f-author").value.trim(),
+    illustrator: ILLUSTRATED[$("f-reader").value] ? $("f-illustrator").value.trim() : "", genre: $("f-genre").value, reader: $("f-reader").value,
     totalPages: Math.max(0, Math.round(+$("f-pages").value || 0)), started, finished: finished || "",
     rating, note: $("f-note").value.trim()
   };
