@@ -33,7 +33,7 @@
   --arim: #1d6a5a;
   --soli: #4a56a6;
   --on-accent: #ffffff;
-  --g1: #1d6a5a; --g2: #3d5a98; --g3: #a67a24; --g4: #8a4a6b; --g5: #5b7a2e; --g6: #6b6f78; --g7: #b0573a;
+  --g1: #1d6a5a; --g2: #3d5a98; --g3: #a67a24; --g4: #8a4a6b; --g5: #5b7a2e; --g6: #6b6f78; --g7: #b0573a; --g8: #2a7f99;
   --display: "Gowun Batang", "AppleMyungjo", "Nanum Myeongjo", serif;
   --body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
@@ -42,14 +42,14 @@
   :root:not([data-theme="light"]) {
     --bg: #111a1b; --surface: #182324; --ink: #e3ebe8; --muted: #93a3a0; --line: #2b3a3b;
     --brass: #d6a94e; --gold: #e0b43a; --gold-hi: #fff0b0; --gold-deep: #b8861c; --yellow: #f0d45a; --yellow-deep: #d8b425; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
-    --g1: #4fae95; --g2: #7d9be0; --g3: #d6a94e; --g4: #c682a6; --g5: #93b55d; --g6: #9ba0aa; --g7: #e08a68;
+    --g1: #4fae95; --g2: #7d9be0; --g3: #d6a94e; --g4: #c682a6; --g5: #93b55d; --g6: #9ba0aa; --g7: #e08a68; --g8: #6cc3dc;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111a1b; --surface: #182324; --ink: #e3ebe8; --muted: #93a3a0; --line: #2b3a3b;
   --brass: #d6a94e; --gold: #e0b43a; --gold-hi: #fff0b0; --gold-deep: #b8861c; --yellow: #f0d45a; --yellow-deep: #d8b425; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
-  --g1: #4fae95; --g2: #7d9be0; --g3: #d6a94e; --g4: #c682a6; --g5: #93b55d; --g6: #9ba0aa; --g7: #e08a68;
+  --g1: #4fae95; --g2: #7d9be0; --g3: #d6a94e; --g4: #c682a6; --g5: #93b55d; --g6: #9ba0aa; --g7: #e08a68; --g8: #6cc3dc;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -321,9 +321,9 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--slot); }
 const READERS = { arim: "아림", soli: "솔리" };
 const GENRES = [
   ["문학", "--g1"], ["인문·사회", "--g2"], ["역사", "--g3"],
-  ["에세이", "--g4"], ["과학·기술", "--g5"], ["만화", "--g6"], ["기타", "--g7"]
+  ["에세이", "--g4"], ["과학·기술", "--g5"], ["만화", "--g6"], ["수학", "--g8"], ["기타", "--g7"]
 ];
-const gColor = g => `var(${(GENRES.find(x => x[0] === g) || GENRES[6])[1]})`;
+const gColor = g => `var(${(GENRES.find(x => x[0] === g) || GENRES.find(x => x[0] === "기타"))[1]})`;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const iso = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
