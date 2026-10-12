@@ -169,6 +169,16 @@ td.no { font-family: var(--mono); color: var(--muted); font-size: .8rem; }
 td .t { font-family: var(--display); font-weight: 700; }
 td .note { color: var(--muted); font-size: .82rem; margin-top: 2px; }
 .chip { display: inline-block; font-size: .72rem; padding: 1px 8px; border-radius: 10px; color: #fff; white-space: nowrap; }
+.chip.sp { background: transparent; color: var(--brass); border: 1px solid var(--brass); margin-left: 6px; }
+.split { display: grid; gap: 6px; }
+.split .lab { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); }
+.split .lab b { color: var(--ink); font-weight: 600; }
+.split .bar.sp > i { background: var(--brass); }
+.shelf-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: .9rem; margin-bottom: 6px; }
+.shelf-label b { font-family: var(--display); font-size: 1.05rem; }
+.shelf-label span { color: var(--muted); font-size: .82rem; }
+.check { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--ink); }
+.check input { width: auto; }
 .chip.ex, .chip.reading { background: transparent; color: var(--muted); border: 1px dashed var(--muted); margin-left: 6px; }
 .chip.reading { border-style: solid; color: var(--accent); border-color: var(--accent); }
 tr.click { cursor: pointer; } tr.click:hover td { background: var(--slot); }
@@ -203,7 +213,7 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--slot); }
 
   <section style="display:grid;gap:12px" aria-labelledby="shelfTitle">
     <div class="sec-head"><h2 id="shelfTitle">다 읽은 책 서가</h2><div class="legend" id="legend"></div></div>
-    <div class="shelf" id="shelf"></div>
+    <div id="shelves" style="display:grid;gap:18px"></div>
   </section>
 
   <div class="grid2">
@@ -216,6 +226,7 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--slot); }
           <label>분야<select id="f-genre"></select></label>
           <label>총 페이지<input id="f-pages" type="number" min="1" max="5000" inputmode="numeric" placeholder="예: 216"></label>
           <label>읽는 사람<select id="f-reader"><option value="arim">아림</option><option value="soli">솔리</option></select></label>
+          <div class="full" id="spRow" hidden><label class="check"><input type="checkbox" id="f-special"> 스페셜 책 (100쪽 이상)</label><div class="hint" id="spHint"></div></div>
           <label>처음 읽은 날<input id="f-start" type="date" required></label>
           <label>다 읽은 날<input id="f-end" type="date" aria-describedby="endHint"></label>
           <div class="full hint" id="endHint" style="margin-top:-6px">아직 읽는 중이면 다 읽은 날은 비워 두세요.</div>
@@ -352,6 +363,17 @@ const fmtTime = m => { m = Math.round(m || 0); const h = Math.floor(m / 60), r =
 const pagesRead = b => isDone(b) ? Math.max(+b.totalPages || 0, loggedPages(b)) : loggedPages(b);
 const goalOf = r => ({ goal: 100, start: "", end: "", ...(goals[r] || {}) });
 const byReader = r => books.filter(b => b.reader === r);
+// 솔리는 100권을 스페셜(100쪽 이상) 50권 + 자유 50권으로 나눠요.
+const SPLIT = { soli: { minPages: 100 } };
+const isSplit = r => !!SPLIT[r];
+const isSpecial = b => isSplit(b.reader) && !!b.special;
+function targets(r) { const G = Math.max(1, +goalOf(r).goal || 100); const sp = isSplit(r) ? Math.ceil(G / 2) : 0; return { G, sp, gen: G - sp }; }
+function doneCount(r) {
+  const fin = finishedOf(r);
+  if (!isSplit(r)) return fin.length;
+  const t = targets(r), sp = fin.filter(isSpecial).length;
+  return Math.min(sp, t.sp) + Math.min(fin.length - sp, t.gen);
+}
 const finishedOf = r => byReader(r).filter(isDone).sort((a, b) => a.finished.localeCompare(b.finished) || (a.createdAt || 0) - (b.createdAt || 0));
 function daily(r, key) {
   const m = {};
@@ -376,13 +398,21 @@ drawStars();
 function renderReaders() {
   $("readers").innerHTML = Object.entries(READERS).map(([r, name]) => {
     const G = Math.max(1, +goalOf(r).goal || 100);
-    const done = finishedOf(r).length;
+    const done = doneCount(r);
     const reading = byReader(r).filter(b => !isDone(b)).length;
+    let bars = `<div class="bar"><i style="width:${Math.min(100, done / G * 100)}%"></i></div>`;
+    if (isSplit(r)) {
+      const t = targets(r), fin = finishedOf(r), sp = fin.filter(isSpecial).length, gen = fin.length - sp;
+      bars = `<div class="split">
+        <div class="lab"><span>스페셜 (100쪽 이상)</span><b class="num">${sp} / ${t.sp}권</b></div><div class="bar sp"><i style="width:${Math.min(100, sp / t.sp * 100)}%"></i></div>
+        <div class="lab"><span>자유</span><b class="num">${gen} / ${t.gen}권</b></div><div class="bar"><i style="width:${Math.min(100, gen / t.gen * 100)}%"></i></div>
+      </div>`;
+    }
     const pages = byReader(r).reduce((s, b) => s + pagesRead(b), 0);
     const mins = byReader(r).reduce((s, b) => s + loggedMinutes(b), 0);
     return `<button type="button" class="reader" data-r="${r}" aria-pressed="${r === reader}">
       <div class="rtop"><span class="name">${name}</span><span class="cnt num">${done}<small> / ${G}권</small></span></div>
-      <div class="bar"><i style="width:${Math.min(100, done / G * 100)}%"></i></div>
+      ${bars}
       <div class="meta"><span>읽는 중 <b class="num">${reading}권</b></span><span>읽은 쪽수 <b class="num">${pages.toLocaleString()}쪽</b></span><span>독서 시간 <b class="num">${fmtTime(mins)}</b></span><span>달성률 <b class="num">${Math.floor(Math.min(100, done / G * 100))}%</b></span></div>
     </button>`;
   }).join("");
@@ -390,7 +420,7 @@ function renderReaders() {
 
 function renderPace() {
   const name = READERS[reader], g = goalOf(reader), G = Math.max(1, +g.goal || 100);
-  const list = finishedOf(reader), n = list.length;
+  const list = finishedOf(reader), n = doneCount(reader);
   const now = parse(today());
   const firstStart = byReader(reader).map(b => b.started).filter(Boolean).sort()[0];
   const start = g.start ? parse(g.start) : (firstStart ? parse(firstStart) : now);
@@ -427,7 +457,7 @@ function renderReading() {
     const days = b.started ? Math.round((parse(today()) - parse(b.started)) / dayMs) + 1 : 0;
     const id = esc(b.id);
     return `<article class="now">
-      <div class="head"><div><h3>${esc(b.title)}${b.example ? '<span class="chip ex">예시</span>' : ""}</h3><div class="by">${esc(b.author || "")}${b.author ? " · " : ""}${b.started ? `${fmtS(b.started)} 시작, ${days}일째` : ""}</div></div>
+      <div class="head"><div><h3>${esc(b.title)}${isSpecial(b) ? '<span class="chip sp">스페셜</span>' : ""}${b.example ? '<span class="chip ex">예시</span>' : ""}</h3><div class="by">${esc(b.author || "")}${b.author ? " · " : ""}${b.started ? `${fmtS(b.started)} 시작, ${days}일째` : ""}</div></div>
         <button type="button" class="link" data-edit="${id}">고치기</button></div>
       <div class="bar" style="--c:var(--accent)"><i style="width:${pct}%"></i></div>
       <div class="pg"><span><b class="num">${read}</b>${total ? ` / ${total}쪽` : "쪽 읽음"}</span><span class="num">${total ? Math.round(pct) + "%" : "총 페이지를 적으면 진행률이 보여요"}</span></div>
@@ -449,15 +479,22 @@ function renderReading() {
   if (focused && $(focused)) $(focused).focus();
 }
 
-function renderShelf() {
-  const list = finishedOf(reader), G = Math.max(1, +goalOf(reader).goal || 100);
+function shelfHtml(list, G) {
   let html = "";
   for (let i = 0; i < Math.max(G, list.length); i++) {
     const b = list[i];
     html += b ? `<div class="slot"><button type="button" class="spine${b.example ? " ex" : ""}" data-edit="${esc(b.id)}" style="background-color:${gColor(b.genre)};height:${78 + ((b.title || "").length * 7 + i * 13) % 20}%" title="${i + 1}. ${esc(b.title)}${b.author ? " · " + esc(b.author) : ""}" aria-label="${i + 1}번째 책 ${esc(b.title)}">${esc(b.title)}</button></div>`
       : `<div class="slot empty" data-n="${i + 1}"></div>`;
   }
-  $("shelf").innerHTML = html;
+  return `<div class="shelf">${html}</div>`;
+}
+function renderShelf() {
+  const list = finishedOf(reader), t = targets(reader);
+  if (!isSplit(reader)) { $("shelves").innerHTML = shelfHtml(list, t.G); return; }
+  const sp = list.filter(isSpecial), gen = list.filter(b => !isSpecial(b));
+  $("shelves").innerHTML =
+    `<div><div class="shelf-label"><b>스페셜 서가</b><span>100쪽 이상 · ${sp.length} / ${t.sp}권</span></div>${shelfHtml(sp, t.sp)}</div>` +
+    `<div><div class="shelf-label"><b>자유 서가</b><span>쪽수 상관없음 · ${gen.length} / ${t.gen}권</span></div>${shelfHtml(gen, t.gen)}</div>`;
 }
 
 function renderStats() {
@@ -508,7 +545,9 @@ function renderStats() {
 
 function renderList() {
   const fin = finishedOf(reader);
-  const numOf = new Map(fin.map((b, i) => [b.id, i + 1]));
+  const numOf = new Map();
+  if (isSplit(reader)) { let a = 0, c = 0; fin.forEach(b => numOf.set(b.id, isSpecial(b) ? "S" + String(++a).padStart(2, "0") : String(++c).padStart(3, "0"))); }
+  else fin.forEach((b, i) => numOf.set(b.id, String(i + 1).padStart(3, "0")));
   const reading = byReader(reader).filter(b => !isDone(b));
   const q = query.trim().toLowerCase();
   const all = [...reading, ...fin.slice().reverse()].filter(b => !q || (b.title + " " + (b.author || "")).toLowerCase().includes(q));
@@ -516,8 +555,8 @@ function renderList() {
     const no = numOf.get(b.id);
     const span = b.started && b.finished ? `${Math.round((parse(b.finished) - parse(b.started)) / dayMs) + 1}일` : "";
     return `<tr class="${canWrite ? "click" : ""}" data-edit="${esc(b.id)}">
-      <td class="no">${no ? String(no).padStart(3, "0") : "—"}</td>
-      <td><span class="t">${esc(b.title)}</span>${isDone(b) ? "" : '<span class="chip reading">읽는 중</span>'}${b.example ? '<span class="chip ex">예시</span>' : ""}
+      <td class="no">${no || "—"}</td>
+      <td><span class="t">${esc(b.title)}</span>${isDone(b) ? "" : '<span class="chip reading">읽는 중</span>'}${isSpecial(b) ? '<span class="chip sp">스페셜</span>' : ""}${b.example ? '<span class="chip ex">예시</span>' : ""}
         <div class="note">${esc(b.author || "")}${b.author ? " · " : ""}<span class="chip" style="background:${gColor(b.genre)}">${esc(b.genre || "기타")}</span></div>
         ${b.note ? `<div class="note">“${esc(b.note)}”</div>` : ""}</td>
       <td class="num" style="white-space:nowrap">${fmtS(b.started)} ~ ${b.finished ? fmtS(b.finished) : ""}${span ? `<div class="note">${span}</div>` : ""}</td>
@@ -532,7 +571,8 @@ function render() {
   $("wrap").dataset.reader = reader;
   $("exNotice").hidden = !(books.some(b => b.example) && canWrite);
   renderReaders(); renderPace(); renderReading(); renderShelf(); renderStats(); renderList();
-  if (!editingId) $("f-reader").value = reader;
+  if (!editingId && $("f-reader").value !== reader) { $("f-reader").value = reader; }
+  updateSpecialRow();
 }
 
 // Editing
@@ -541,6 +581,26 @@ function renderLogEditor(b) {
   $("logEditor").hidden = !logs.length;
   $("logList").innerHTML = logs.map(([l, i]) => `<div><span class="num">${fmtS(l.date)} · ${[l.pages ? l.pages + "쪽" : "", l.minutes ? fmtTime(l.minutes) : ""].filter(Boolean).join(" · ")}</span>${canWrite ? `<button type="button" class="x" data-rmlog="${i}">지우기</button>` : ""}</div>`).join("");
 }
+let spTouched = false;
+function updateSpecialRow() {
+  const r = $("f-reader").value, cb = $("f-special");
+  $("spRow").hidden = !isSplit(r);
+  if (!isSplit(r)) return;
+  const pages = +$("f-pages").value || 0, min = SPLIT[r].minPages, t = targets(r);
+  const used = byReader(r).filter(b => b.special && b.id !== editingId).length;
+  if (pages < min) {
+    cb.checked = false; cb.disabled = true;
+    $("spHint").textContent = `총 페이지가 ${min}쪽 이상인 책만 스페셜로 담을 수 있어요.`;
+    return;
+  }
+  cb.disabled = !canWrite;
+  if (!spTouched && !editingId) cb.checked = used < t.sp;
+  $("spHint").textContent = `스페셜 ${used}${cb.checked ? " + 1" : ""} / ${t.sp}권 (읽는 중인 책 포함)${used >= t.sp ? " · 스페셜 칸이 다 찼어요" : ""}`;
+}
+$("f-pages").addEventListener("input", updateSpecialRow);
+$("f-reader").addEventListener("change", () => { spTouched = false; updateSpecialRow(); });
+$("f-special").addEventListener("change", () => { spTouched = true; updateSpecialRow(); });
+
 function startEdit(id) {
   const b = books.find(x => x.id === id); if (!b || !canWrite) return;
   editingId = id;
@@ -549,6 +609,7 @@ function startEdit(id) {
   $("f-reader").value = b.reader || reader; $("f-start").value = b.started || "";
   $("f-end").value = b.finished || ""; $("f-note").value = b.note || "";
   rating = b.rating || 0; drawStars(); renderLogEditor(b);
+  $("f-special").checked = !!b.special; spTouched = true; updateSpecialRow();
   $("formTitle").textContent = "기록 고치기"; $("save").textContent = "변경 저장";
   $("cancel").hidden = false; $("del").hidden = false; $("del").textContent = "삭제"; delArmed = false;
   $("msg").textContent = ""; $("form").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -556,6 +617,7 @@ function startEdit(id) {
 }
 function resetForm() {
   editingId = null; $("form").reset(); $("f-start").value = today(); $("f-reader").value = reader; rating = 0; drawStars();
+  spTouched = false; updateSpecialRow();
   $("logEditor").hidden = true;
   $("formTitle").textContent = "새 책 시작하기"; $("save").textContent = "책 추가";
   $("cancel").hidden = true; $("del").hidden = true;
@@ -658,6 +720,7 @@ $("form").addEventListener("submit", async e => {
     totalPages: Math.max(0, Math.round(+$("f-pages").value || 0)), started, finished: finished || "",
     rating, note: $("f-note").value.trim()
   };
+  data.special = isSplit(data.reader) && data.totalPages >= SPLIT[data.reader].minPages && $("f-special").checked;
   $("save").disabled = true;
   try {
     if (editingId) {
