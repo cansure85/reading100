@@ -120,7 +120,7 @@ h2 { font-size: 1.25rem; }
 form { display: grid; gap: 12px; }
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .fields .full { grid-column: 1 / -1; }
-label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
+label, .lbl { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
 input, select, textarea { font: inherit; font-size: .95rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; min-width: 0; }
 textarea { resize: vertical; min-height: 60px; }
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -249,7 +249,7 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--slot); }
           <label>처음 읽은 날<input id="f-start" type="date" required></label>
           <label>다 읽은 날<input id="f-end" type="date" aria-describedby="endHint"></label>
           <div class="full hint" id="endHint" style="margin-top:-6px">아직 읽는 중이면 다 읽은 날은 비워 두세요.</div>
-          <label>별점<div class="stars" id="f-stars" role="radiogroup" aria-label="별점"></div></label>
+          <div class="lbl">별점<div class="stars" id="f-stars" role="radiogroup" aria-label="별점"></div></div>
           <label class="full">한 줄 메모<textarea id="f-note" maxlength="300" placeholder="기억하고 싶은 장면이나 느낀 점"></textarea></label>
           <div class="full" id="logEditor" hidden>
             <div class="eyebrow" style="margin-bottom:6px">날짜별 읽은 기록</div>
