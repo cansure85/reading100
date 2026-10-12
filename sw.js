@@ -1,5 +1,5 @@
 // 오프라인에서도 열리게 하고, 온라인이면 항상 새 버전을 먼저 받아옴
-const CACHE = "reading100-v6";
+const CACHE = "reading100-v7";
 const CORE = ["./", "./index.html", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
