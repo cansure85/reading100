@@ -27,6 +27,7 @@
   --muted: #5d6d6c;
   --line: #d3dbd8;
   --brass: #a67a24;
+  --gold: #c99a1e; --gold-hi: #ffe58a; --gold-deep: #8a6410; --yellow: #f4d03f; --yellow-deep: #c9a40f; --spine-ink: #3a2c06;
   --slot: #e2e8e5;
   --danger: #b0413e;
   --arim: #1d6a5a;
@@ -40,14 +41,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #111a1b; --surface: #182324; --ink: #e3ebe8; --muted: #93a3a0; --line: #2b3a3b;
-    --brass: #d6a94e; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
+    --brass: #d6a94e; --gold: #e0b43a; --gold-hi: #fff0b0; --gold-deep: #b8861c; --yellow: #f0d45a; --yellow-deep: #d8b425; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
     --g1: #4fae95; --g2: #7d9be0; --g3: #d6a94e; --g4: #c682a6; --g5: #93b55d; --g6: #9ba0aa; --g7: #e08a68;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111a1b; --surface: #182324; --ink: #e3ebe8; --muted: #93a3a0; --line: #2b3a3b;
-  --brass: #d6a94e; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
+  --brass: #d6a94e; --gold: #e0b43a; --gold-hi: #fff0b0; --gold-deep: #b8861c; --yellow: #f0d45a; --yellow-deep: #d8b425; --slot: #1f2c2d; --danger: #e07a73; --arim: #5fbfa5; --soli: #94a0f0; --on-accent: #0d1716;
   --g1: #4fae95; --g2: #7d9be0; --g3: #d6a94e; --g4: #c682a6; --g5: #93b55d; --g6: #9ba0aa; --g7: #e08a68;
   color-scheme: dark;
 }
@@ -174,7 +175,23 @@ td .note { color: var(--muted); font-size: .82rem; margin-top: 2px; }
 .split { display: grid; gap: 6px; }
 .split .lab { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); }
 .split .lab b { color: var(--ink); font-weight: 600; }
-.split .bar.sp > i { background: var(--brass); }
+/* 솔리 서가: 스페셜은 반짝이는 황금색, 자유는 노란색 */
+.shelf.gold, .shelf.yellow { position: relative; overflow: hidden; }
+.shelf.gold { background: color-mix(in srgb, var(--gold) 14%, var(--surface)); border-color: var(--gold); box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent), 0 4px 18px color-mix(in srgb, var(--gold) 25%, transparent); }
+.shelf.yellow { background: color-mix(in srgb, var(--yellow) 14%, var(--surface)); border-color: var(--yellow-deep); }
+.shelf.gold .slot { border-bottom-color: var(--gold); }
+.shelf.yellow .slot { border-bottom-color: var(--yellow-deep); }
+.spine.gold { background: linear-gradient(100deg, var(--gold-deep) 0%, var(--gold) 30%, var(--gold-hi) 50%, var(--gold) 70%, var(--gold-deep) 100%); color: var(--spine-ink); }
+.spine.yellow { background: var(--yellow); color: var(--spine-ink); }
+.spine.gold::after { content: ""; position: absolute; inset: -20% 0; background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,.85) 50%, transparent 100%); transform: translateY(-120%); animation: shine 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); pointer-events: none; }
+@keyframes shine { 0%, 55% { transform: translateY(-120%); } 85%, 100% { transform: translateY(120%); } }
+.spark { position: absolute; color: var(--gold-hi); text-shadow: 0 0 6px var(--gold), 0 0 12px var(--gold); font-size: 14px; line-height: 1; pointer-events: none; animation: twinkle 2.4s ease-in-out infinite; z-index: 2; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); } 50% { opacity: 1; transform: scale(1.1) rotate(45deg); } }
+.shelf-label b.gold { color: var(--gold-deep); }
+.shelf-label b.gold::after { content: " ✦"; color: var(--gold); }
+.split .bar.sp > i { background: linear-gradient(90deg, var(--gold-deep), var(--gold-hi), var(--gold)); }
+.split .bar.gen > i { background: var(--yellow-deep); }
+@media (prefers-reduced-motion: reduce) { .spine.gold::after, .spark { animation: none; } .spark { opacity: .8; } }
 .shelf-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: .9rem; margin-bottom: 6px; }
 .shelf-label b { font-family: var(--display); font-size: 1.05rem; }
 .shelf-label span { color: var(--muted); font-size: .82rem; }
@@ -413,7 +430,7 @@ function renderReaders() {
       const t = targets(r), fin = finishedOf(r), sp = fin.filter(isSpecial).length, gen = fin.length - sp;
       bars = `<div class="split">
         <div class="lab"><span>스페셜 (100쪽 이상)</span><b class="num">${sp} / ${t.sp}권</b></div><div class="bar sp"><i style="width:${Math.min(100, sp / t.sp * 100)}%"></i></div>
-        <div class="lab"><span>자유</span><b class="num">${gen} / ${t.gen}권</b></div><div class="bar"><i style="width:${Math.min(100, gen / t.gen * 100)}%"></i></div>
+        <div class="lab"><span>자유</span><b class="num">${gen} / ${t.gen}권</b></div><div class="bar gen"><i style="width:${Math.min(100, gen / t.gen * 100)}%"></i></div>
       </div>`;
     }
     const pages = byReader(r).reduce((s, b) => s + pagesRead(b), 0);
@@ -487,22 +504,28 @@ function renderReading() {
   if (focused && $(focused)) $(focused).focus();
 }
 
-function shelfHtml(list, G) {
+function shelfHtml(list, G, kind) {
   let html = "";
   for (let i = 0; i < Math.max(G, list.length); i++) {
     const b = list[i];
-    html += b ? `<div class="slot"><button type="button" class="spine${b.example ? " ex" : ""}" data-edit="${esc(b.id)}" style="background-color:${gColor(b.genre)};height:${78 + ((b.title || "").length * 7 + i * 13) % 20}%" title="${i + 1}. ${esc(b.title)}${credit(b) ? " · " + esc(credit(b)) : ""}" aria-label="${i + 1}번째 책 ${esc(b.title)}">${esc(b.title)}</button></div>`
+    html += b ? `<div class="slot"><button type="button" class="spine${b.example ? " ex" : ""}${kind ? " " + kind : ""}" data-edit="${esc(b.id)}" style="${kind ? `--d:${(i * 0.37) % 3}s;` : `background-color:${gColor(b.genre)};`}height:${78 + ((b.title || "").length * 7 + i * 13) % 20}%" title="${i + 1}. ${esc(b.title)}${credit(b) ? " · " + esc(credit(b)) : ""}" aria-label="${i + 1}번째 책 ${esc(b.title)}">${esc(b.title)}</button></div>`
       : `<div class="slot empty" data-n="${i + 1}"></div>`;
   }
-  return `<div class="shelf">${html}</div>`;
+  let sparks = "";
+  if (kind === "gold") {
+    const spots = [[6, 8], [22, 30], [41, 12], [58, 44], [74, 18], [90, 36], [14, 62], [35, 78], [66, 70], [86, 88], [50, 92], [28, 50]];
+    sparks = spots.map(([x, y], k) => `<i class="spark" aria-hidden="true" style="left:${x}%;top:${y}%;animation-delay:${(k * 0.53) % 2.4}s;font-size:${10 + (k * 5) % 9}px">✦</i>`).join("");
+  }
+  return `<div class="shelf${kind ? " " + kind : ""}">${sparks}${html}</div>`;
 }
 function renderShelf() {
   const list = finishedOf(reader), t = targets(reader);
+  $("legend").hidden = isSplit(reader);
   if (!isSplit(reader)) { $("shelves").innerHTML = shelfHtml(list, t.G); return; }
   const sp = list.filter(isSpecial), gen = list.filter(b => !isSpecial(b));
   $("shelves").innerHTML =
-    `<div><div class="shelf-label"><b>스페셜 서가</b><span>100쪽 이상 · ${sp.length} / ${t.sp}권</span></div>${shelfHtml(sp, t.sp)}</div>` +
-    `<div><div class="shelf-label"><b>자유 서가</b><span>쪽수 상관없음 · ${gen.length} / ${t.gen}권</span></div>${shelfHtml(gen, t.gen)}</div>`;
+    `<div><div class="shelf-label"><b class="gold">스페셜 서가</b><span>100쪽 이상 · ${sp.length} / ${t.sp}권</span></div>${shelfHtml(sp, t.sp, "gold")}</div>` +
+    `<div><div class="shelf-label"><b>자유 서가</b><span>쪽수 상관없음 · ${gen.length} / ${t.gen}권</span></div>${shelfHtml(gen, t.gen, "yellow")}</div>`;
 }
 
 function renderStats() {
